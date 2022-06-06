@@ -10,6 +10,15 @@
 
     <name>Hello Java</name>
     <description>A tiny website that says Hello World!</description>
+         
+         
+   <distributionManagement>
+      <repository>
+        <id>github</id>
+        <name>GitHub OWNER Apache Maven Packages</name>
+        <url>https://maven.pkg.github.com/suriya1410/demojava</https://github.com/suriya1410/demojava.git>
+      </repository>
+   </distributionManagement>
 
     <properties>
         <revision>0-SNAPSHOT</revision>
