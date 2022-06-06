@@ -1,0 +1,37 @@
+---
+# A task to run unit tests
+# Inspired by: <https://github.com/alphagov/pay-ci/blob/a68d8686f679a2129c3d72eb5ca51225600245a1/ci/tasks/java-tests.yml>
+
+# Task definition
+
+platform: linux
+container_limits: {}
+
+# Use the 'maven:3.6.3' image from Docker Hub
+image_resource:
+  type: registry-image
+  source:
+    repository: maven
+    tag: 3.6.3
+
+# Cache the Maven repository directory
+caches:
+  - path: $HOME/.m2/repository
+
+# We will provide an input called 'src' to this Task
+inputs:
+  - name: git
+outputs:
+  - name: build
+
+# What do we want this task to do?
+# Tell Concourse the commands it should execute, in this Task
+run:
+  path: /bin/sh
+  args:
+  - -c
+  - |
+    mvn -f git/pom.xml test
+
+    # Make this output available to the 'test' Job
+    cp -R git/* build

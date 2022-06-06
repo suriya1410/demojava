@@ -1,0 +1,53 @@
+---
+# Declare the resources that Concourse will continually check and use.
+# These resources can be used as triggers, inputs and outputs.
+# Each resource has a name and a type.
+resources:
+- name: git
+  icon: github
+  type: git
+  source:
+    uri: https://github.com/monodot/hello-java
+    branch: master
+- name: image
+  type: registry-image
+  icon: docker
+  source:
+    repository: ((image-name))
+    username: ((registry-username))
+    password: ((registry-password))
+    tag: latest
+
+# A pipeline has 1 or more Jobs
+# Each Job is composed of a series of Tasks
+# e.g. "build-app" -> "build", "create-image", etc.
+jobs:
+
+# This test job will fetch the source code from GitHub,
+# Then execute the 'test' task which is defined separately in the repository.
+# "When it comes to real-world projects, task configs are usually stored alongside the code that it's testing."
+- name: unit
+  plan:
+  - get: git
+    version: latest # Just process the latest Git commit, not every commit (this is the default setting)
+    trigger: true # Trigger this job whenever Concourse detects a new Resource version (i.e. a new Git commit)
+  - task: run-unit-tests
+    file: git/ci/concourse/tasks/unit-test.yml
+
+# This build job will fetch the source code,
+# then execute a 'build' task which is defined separately in the repository.
+- name: package
+  plan:
+  - get: git # Concourse is stateless and needs to be given an external input to this Job.
+    # But it will not fetch the HEAD, it'll use the same git commit that passed through the previous Job.
+    # https://concourse-ci.org/jobs.html#schema.step.get-step.passed
+    # "When specified, only the versions of the resource that made it through the given
+    # list of jobs (AND-ed together) will be considered when triggering and fetching."
+    passed:
+      - unit # The 'unit' job must have passed for this job to execute
+    trigger: true
+  - task: maven-package
+    file: git/ci/concourse/tasks/maven-package.yml
+  # Take the image built in the previous task, and push it to our Docker registry Resource
+  - put: image
+    params: {image: image/hello-java.tar}
